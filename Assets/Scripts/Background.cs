@@ -26,6 +26,11 @@ public class Background : MonoBehaviour
     private void HandleMouseMovement()
     {
     }
+
+    public void DisableShadowSquare()
+    {
+        _shadowSquare.SetActive(false);
+    }
     
     private void OnMouseOver()
     {
@@ -39,12 +44,12 @@ public class Background : MonoBehaviour
         {
             _shadowSquare.transform.position = squarePosition;
             _shadowSquare.transform.localScale = new Vector3(scale, scale, _shadowSquare.transform.localScale.z);
+            if (Input.GetMouseButtonUp(0))
+            {
+                Interaction.Instance.NewSquare(_shadowSquare.transform.position);
+            }
         }
 
-        if (Input.GetMouseButtonUp(0))
-        {
-            
-        }
 
     }
     
@@ -84,7 +89,7 @@ public class Background : MonoBehaviour
     }
 
 
-    private void ResizeSpriteToScreen()
+    public void ResizeSpriteToScreen()
     {
         var sr = GetComponent<SpriteRenderer>();
         if (sr == null) return;

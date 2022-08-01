@@ -15,17 +15,17 @@ public class Grid : MonoBehaviour
     {
         _horizontalLines = new List<GameObject>();
         _verticalLines = new List<GameObject>();
-        ShowGrid();
+        DrawGrid();
     }
 
     // Update is called once per frame
     private void Update()
     {
         if (Input.GetKeyUp(KeyCode.R))
-            ShowGrid();
+            DrawGrid();
     }
 
-    public void ShowGrid()
+    public void DrawGrid()
     {
         if (_verticalLines.Count > 0) {
             _verticalLines.ForEach((Destroy));
@@ -104,5 +104,10 @@ public class Grid : MonoBehaviour
             lineRenderer.SetPositions(positions);
             _verticalLines.Add(line);
         }
+    }
+
+    private void OnGUI()
+    {
+
     }
 }

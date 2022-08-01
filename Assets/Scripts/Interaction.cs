@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class Interaction : MonoBehaviour
@@ -9,20 +8,19 @@ public class Interaction : MonoBehaviour
     [SerializeField] private new Camera camera;
 
     private Square _currentSquare;
-    private Dictionary<string, Square> _squares;
+    public Dictionary<string, Square> Squares;
     private int _maxSquareCounter;
     [SerializeField] public float currentSideScale = 1;
     private string _textScale;
-    private enum Mode 
-    {
-        Keyboard,
-        Mouse
-    }
+    public Grid grid;
+    public Background background;
+    [NonSerialized] public List<string> SelectedSquareNames;
 
-    [SerializeField] private Mode mode = Mode.Mouse;
-    
+    public Dictionary<string, float> ShortestDistance;
+    [SerializeField] private float floatTolerance = 0.01f;
+    [SerializeField] private string guiLabelOutput = "";
 
-    private enum AdjacentSide
+    public enum AdjacentSide
     {
         Up,
         Down,
@@ -43,7 +41,7 @@ public class Interaction : MonoBehaviour
     }
 
 
-    private class Square : IDisposable
+    public class Square : IDisposable
     {
         public readonly GameObject Self;
         public Square Up;
@@ -74,8 +72,6 @@ public class Interaction : MonoBehaviour
             var targetRect = target.GetRect();
             var selfRect = GetRect();
 
-            // Debug.Log(targetRect);
-            // Debug.Log(selfRect);
             //check up
             if (IsFloatEqual(targetRect.Min.y, selfRect.Max.y) &&
                 ((targetRect.Min.x >= selfRect.Min.x && targetRect.Max.x <= selfRect.Max.x) ||
@@ -109,6 +105,25 @@ public class Interaction : MonoBehaviour
             }
 
             return AdjacentSide.None;
+        }
+
+        public Dictionary<string, float> GetAdjacentSquares()
+        {
+            var result = new Dictionary<string, float>();
+
+            if (Up != null)
+                result.Add(Up.Self.name, _sideScale);
+
+            if (Down != null)
+                result.Add(Down.Self.name, _sideScale);
+
+            if (Left != null)
+                result.Add(Left.Self.name, _sideScale);
+
+            if (Right != null)
+                result.Add(Right.Self.name, _sideScale);
+
+            return result;
         }
 
         public override string ToString()
@@ -153,6 +168,7 @@ public class Interaction : MonoBehaviour
     }
 
     public static Interaction Instance { get; private set; }
+
     private void Awake()
     {
         if (Instance != null)
@@ -165,80 +181,91 @@ public class Interaction : MonoBehaviour
 
     private void Start()
     {
-        _squares = new Dictionary<string, Square>();
-        // SetSquareActive(NewSquare(Vector3.zero));
+        Squares = new Dictionary<string, Square>();
+        SelectedSquareNames = new List<string>();
     }
 
 
     // Update is called once per frame
     private void Update()
     {
-        switch (mode)
+        if (Input.GetKeyUp(KeyCode.P))
+            PrintDebugInfo();
+
+        if (Input.GetKeyUp(KeyCode.Equals))
         {
-            case Mode.Keyboard:
-                // HandleKeyboardInput();
-                break;
-            case Mode.Mouse:
-                break;
+            if (camera.orthographicSize > 1)
+            {
+                camera.orthographicSize -= 1;
+                background.ResizeSpriteToScreen();
+                grid.DrawGrid();
+            }
+        }
+
+        if (Input.GetKeyUp(KeyCode.Minus))
+        {
+            camera.orthographicSize += 1;
+            background.ResizeSpriteToScreen();
+            grid.DrawGrid();
+        }
+
+        if (Input.GetKeyUp(KeyCode.Alpha1))
+        {
+            _textScale = "1";
+            grid.DrawGrid();
+        }
+        
+        if (Input.GetKeyUp(KeyCode.Alpha2))
+        {
+            
+            _textScale = "0.5";
+            grid.DrawGrid();
+        }
+        
+        if (Input.GetKeyUp(KeyCode.Alpha3))
+        {
+            
+            _textScale = "0.25";
+            grid.DrawGrid();
+        }
+        
+        if (Input.GetKeyUp(KeyCode.Alpha4))
+        {
+            _textScale = "0.125";
+            grid.DrawGrid();
         }
     }
 
-    // private void HandleKeyboardInput()
-    // {
-    //     var mousePosition = Input.mousePosition;
-    //     var worldMousePosition = camera.ScreenToWorldPoint(mousePosition);
-    //     worldMousePosition.z += 1;
-    //
-    //     if (Input.GetKeyUp(KeyCode.W))
-    //         HandleMovement(KeyCode.W);
-    //     if (Input.GetKeyUp(KeyCode.S))
-    //         HandleMovement(KeyCode.S);
-    //     if (Input.GetKeyUp(KeyCode.A))
-    //         HandleMovement(KeyCode.A);
-    //     if (Input.GetKeyUp(KeyCode.D))
-    //         HandleMovement(KeyCode.D);
-    //
-    //     if (Input.GetKeyUp(KeyCode.P))
-    //         PrintDebugInfo();
-    // }
-
     private void PrintDebugInfo()
     {
-        foreach (var square in _squares)
+        foreach (var square in Squares)
         {
             Debug.Log(square);
         }
     }
 
-    // private void SetSquareActive(Square target)
-    // {
-    //     if (_currentSquare != null && _currentSquare.Self != null)
-    //         _currentSquare.Self.GetComponent<SpriteRenderer>().color = Color.white;
-    //
-    //     _currentSquare = target;
-    //     if (!target.Self) throw new NullReferenceException("Null target self");
-    //     _currentSquare.Self.GetComponent<SpriteRenderer>().color = Color.gray;
-    //     Debug.Log("set current active square");
-    // }
-
-    private Square NewSquare(Vector3 position, float sideLength = 1)
+    public Square NewSquare(Vector3 position)
     {
-        var square = new Square(Instantiate(squarePrefab, position, Quaternion.identity), sideLength);
-        _maxSquareCounter += 1;
+        var square = new Square(Instantiate(squarePrefab, position, Quaternion.identity), currentSideScale);
+        SetAdjacentSquare(square); //Update adjacency info
+
+        _maxSquareCounter += 1; //Add max counter;
         square.Self.name = $"Square@{_maxSquareCounter}";
-        _squares[square.Self.name] = square;
+        Squares[square.Self.name] = square;
+
         return square;
     }
 
     public void DeleteSquare(string squareName)
     {
-        _squares[squareName].Dispose();
-        _squares.Remove(squareName);
+        Squares[squareName].Dispose();
+        Squares.Remove(squareName);
     }
+
 
     private void SetAdjacentSquare(Square target)
     {
-        foreach (var pair in _squares)
+        foreach (var pair in Squares)
         {
             var square = pair.Value;
             var result = target.CheckIfAdjacent(square);
@@ -267,76 +294,52 @@ public class Interaction : MonoBehaviour
             }
         }
     }
-    
-    // private void HandleMovement(KeyCode key)
-    // {
-    //     var newSquarePosition = _currentSquare.Self.transform.position;
-    //     Square newSquare;
-    //     switch (key)
-    //     {
-    //         case KeyCode.W:
-    //
-    //             if (_currentSquare.Up != null)
-    //                 break;
-    //
-    //             newSquarePosition.y += currentSideScale;
-    //             newSquare = NewSquare(newSquarePosition, currentSideScale);
-    //             SetAdjacentSquare(newSquare);
-    //             SetSquareActive(newSquare);
-    //             break;
-    //
-    //         case KeyCode.S:
-    //
-    //             if (_currentSquare.Down != null)
-    //                 break;
-    //
-    //             newSquarePosition.y -= currentSideScale;
-    //             newSquare = NewSquare(newSquarePosition, currentSideScale);
-    //             SetAdjacentSquare(newSquare);
-    //             SetSquareActive(newSquare);
-    //             break;
-    //
-    //         case KeyCode.A:
-    //
-    //             if (_currentSquare.Left != null)
-    //                 break;
-    //
-    //             newSquarePosition.x -= currentSideScale;
-    //             newSquare = NewSquare(newSquarePosition, currentSideScale);
-    //             SetAdjacentSquare(newSquare);
-    //             SetSquareActive(newSquare);
-    //             break;
-    //
-    //         case KeyCode.D:
-    //             if (_currentSquare.Right != null)
-    //                 break;
-    //
-    //             newSquarePosition.x += currentSideScale;
-    //             newSquare = NewSquare(newSquarePosition, currentSideScale);
-    //             SetAdjacentSquare(newSquare);
-    //             SetSquareActive(newSquare);
-    //             break;
-    //     }
-    // }
+
+    private void SaveSquareConfiguration()
+    {
+        
+    }
+
 
     private void OnGUI()
     {
-        GUI.Box(new Rect(50, 25, 180, 140), "");
-        GUI.Label(new Rect(60, 40, 150, 50), "New Size: 1");
-        GUI.Label(new Rect(60, 65, 150, 50), $"Mode: {mode}");
-        // if (GUI.Button(new Rect(60, 105, 150, 20), "Change Mode"))
-        // {
-        //     mode = mode == Mode.Keyboard ? Mode.Mouse : Mode.Keyboard;
-        // }
-        GUI.Label(new Rect(60, 80, 150, 50), $"Side Length: {currentSideScale}");
-        _textScale = GUI.TextField(new Rect(60, 130, 150, 20), $"{_textScale}");
+        GUI.BeginGroup(new Rect(50, 25, 400, 180));
+        GUI.Box(new Rect(10, 0, 400, 160), "");
+        GUI.Label(new Rect(10, 20, 150, 20), "New Size: 1");
+        GUI.Label(new Rect(10, 40, 150, 20), $"Side Length: {currentSideScale}");
+        GUI.Label(new Rect(10, 60, 100, 20), $"Enter Length:");
+        _textScale = GUI.TextField(new Rect(100, 60, 50, 20), $"{_textScale}", 5);
         try
         {
             currentSideScale = float.Parse(_textScale);
+            grid.DrawGrid();
         }
-        catch (FormatException e)
+        catch (FormatException)
         {
             currentSideScale = 1;
         }
+        GUI.Label(new Rect(10, 80, 250, 40), $"You can also use key 1234 to change");
+
+        if (GUI.Button(new Rect(200, 20, 150, 20), "Calculate Shortest Path"))
+        {
+            Shortcut.Calculate();
+            if (SelectedSquareNames is {Count:> 1} && ShortestDistance is {Count: > 1}) 
+            {
+                var output = string.Empty;
+                for (var i = 1; i<SelectedSquareNames.Count; ++i)
+                {
+                    output += $"{SelectedSquareNames[i-1]}==>{SelectedSquareNames[i]}: {ShortestDistance[SelectedSquareNames[i]]}\n";
+                }
+
+                guiLabelOutput = output;
+            }
+        }
+
+        GUI.EndGroup();
+        
+        GUI.BeginGroup(new Rect(50, 200, 400, 180));
+        GUI.Box(new Rect(10, 0, 400, 180), "");
+        GUI.Label(new Rect(10, 20, 400, 200), guiLabelOutput);
+        GUI.EndGroup();
     }
 }

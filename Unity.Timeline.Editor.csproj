@@ -605,6 +605,12 @@
      <Reference Include="Unity.VisualScripting.Antlr3.Runtime">
      <HintPath>D:\Unity Projects\ONR\Library\PackageCache\com.unity.visualscripting@1.7.6\Runtime\VisualScripting.Flow\Dependencies\NCalc\Unity.VisualScripting.Antlr3.Runtime.dll</HintPath>
      </Reference>
+     <Reference Include="NugetForUnity">
+     <HintPath>D:\Unity Projects\ONR\Assets\NuGet\Editor\NugetForUnity.dll</HintPath>
+     </Reference>
+     <Reference Include="PriorityQueue">
+     <HintPath>D:\Unity Projects\ONR\Assets\Packages\OptimizedPriorityQueue.5.1.0\lib\netstandard1.0\PriorityQueue.dll</HintPath>
+     </Reference>
      <Reference Include="nunit.framework">
      <HintPath>D:\Unity Projects\ONR\Library\PackageCache\com.unity.ext.nunit@1.0.6\net35\unity-custom\nunit.framework.dll</HintPath>
      </Reference>
