@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class Interaction : MonoBehaviour
@@ -19,6 +22,8 @@ public class Interaction : MonoBehaviour
     public Dictionary<string, float> ShortestDistance;
     [SerializeField] private float floatTolerance = 0.01f;
     [SerializeField] private string guiLabelOutput = "";
+    [SerializeField] public string configFilePath = "maze.json";
+    private List<SerializableSquare> _serializedSquareList;
 
     public enum AdjacentSide
     {
@@ -40,6 +45,13 @@ public class Interaction : MonoBehaviour
         }
     }
 
+    [Serializable]
+    private struct SerializableSquare
+    {
+        public Vector3 position;
+        public float sideScale;
+    }
+
 
     public class Square : IDisposable
     {
@@ -48,12 +60,12 @@ public class Interaction : MonoBehaviour
         public Square Down;
         public Square Left;
         public Square Right;
-        private readonly float _sideScale;
+        public readonly float SideScale;
 
         public Square(GameObject square, float sideScale = 1)
         {
             Self = square;
-            _sideScale = sideScale;
+            SideScale = sideScale;
             square.transform.localScale = new Vector3(sideScale, sideScale, square.transform.localScale.z);
         }
 
@@ -62,8 +74,8 @@ public class Interaction : MonoBehaviour
             var position = Self.transform.position;
             return new SquareInfo
             {
-                Min = new Vector2(position.x - _sideScale / 2, position.y - _sideScale / 2),
-                Max = new Vector2(position.x + _sideScale / 2, position.y + _sideScale / 2)
+                Min = new Vector2(position.x - SideScale / 2, position.y - SideScale / 2),
+                Max = new Vector2(position.x + SideScale / 2, position.y + SideScale / 2)
             };
         }
 
@@ -112,16 +124,16 @@ public class Interaction : MonoBehaviour
             var result = new Dictionary<string, float>();
 
             if (Up != null)
-                result.Add(Up.Self.name, _sideScale);
+                result.Add(Up.Self.name, SideScale);
 
             if (Down != null)
-                result.Add(Down.Self.name, _sideScale);
+                result.Add(Down.Self.name, SideScale);
 
             if (Left != null)
-                result.Add(Left.Self.name, _sideScale);
+                result.Add(Left.Self.name, SideScale);
 
             if (Right != null)
-                result.Add(Right.Self.name, _sideScale);
+                result.Add(Right.Self.name, SideScale);
 
             return result;
         }
@@ -244,7 +256,7 @@ public class Interaction : MonoBehaviour
         }
     }
 
-    public Square NewSquare(Vector3 position)
+    public void NewSquare(Vector3 position)
     {
         var square = new Square(Instantiate(squarePrefab, position, Quaternion.identity), currentSideScale);
         SetAdjacentSquare(square); //Update adjacency info
@@ -252,9 +264,19 @@ public class Interaction : MonoBehaviour
         _maxSquareCounter += 1; //Add max counter;
         square.Self.name = $"Square@{_maxSquareCounter}";
         Squares[square.Self.name] = square;
-
-        return square;
     }
+
+    private void LoadASquare(Vector3 position, float sideScale = 1)
+    {
+        
+        var square = new Square(Instantiate(squarePrefab, position, Quaternion.identity), sideScale);
+        
+        SetAdjacentSquare(square); //Update adjacency info
+        _maxSquareCounter += 1; //Add max counter;
+        square.Self.name = $"Square@{_maxSquareCounter}";
+        Squares[square.Self.name] = square;
+    }
+    
 
     public void DeleteSquare(string squareName)
     {
@@ -297,6 +319,37 @@ public class Interaction : MonoBehaviour
 
     private void SaveSquareConfiguration()
     {
+        var serializedList = Squares.Select(pair => new SerializableSquare {position = pair.Value.Self.transform.position, sideScale = pair.Value.SideScale}).ToList();
+        var output = JsonConvert.SerializeObject(serializedList);
+        if (string.IsNullOrEmpty(configFilePath)) return;
+        try
+        {
+            File.WriteAllText(configFilePath, output);
+        }
+        catch (IOException ioException)
+        {
+            Debug.Log(ioException.Message);
+        }
+    }
+
+    private void LoadSquareConfiguration()
+    {
+        if (string.IsNullOrEmpty(configFilePath)) return;
+        try
+        {
+            var input = File.ReadAllText(configFilePath);
+            var serializedList = JsonConvert.DeserializeObject<List<SerializableSquare>>(input);
+            foreach (var square in serializedList)
+            {
+                LoadASquare(square.position, square.sideScale);
+            }
+            
+        }
+        catch (Exception exception)
+        {
+            Debug.Log(exception.Message);
+        }
+        
         
     }
 
@@ -334,6 +387,22 @@ public class Interaction : MonoBehaviour
                 guiLabelOutput = output;
             }
         }
+        
+        GUI.Label(new Rect(10, 100, 250, 40), $"Enter the configuration filepath");
+        configFilePath = GUI.TextField(new Rect(10, 120, 250, 20), $"{configFilePath}");
+        if (GUI.Button(new Rect(200, 40, 150, 20), "Load Config"))
+        {
+            if (!string.IsNullOrEmpty(configFilePath) && File.Exists(configFilePath))
+            {
+                LoadSquareConfiguration();
+            }
+        }
+
+        if (GUI.Button(new Rect(200, 60, 150, 20), "Save Config"))
+        {
+            SaveSquareConfiguration();
+        }
+        
 
         GUI.EndGroup();
         

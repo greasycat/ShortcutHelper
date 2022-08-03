@@ -506,6 +506,9 @@
      <Reference Include="PriorityQueue">
      <HintPath>D:\Unity Projects\ONR\Assets\Packages\OptimizedPriorityQueue.5.1.0\lib\netstandard1.0\PriorityQueue.dll</HintPath>
      </Reference>
+     <Reference Include="Newtonsoft.Json">
+     <HintPath>D:\Unity Projects\ONR\Assets\JsonDotNet\Assemblies\Standalone\Newtonsoft.Json.dll</HintPath>
+     </Reference>
      <Reference Include="nunit.framework">
      <HintPath>D:\Unity Projects\ONR\Library\PackageCache\com.unity.ext.nunit@1.0.6\net35\unity-custom\nunit.framework.dll</HintPath>
      </Reference>
