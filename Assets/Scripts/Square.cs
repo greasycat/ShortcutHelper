@@ -1,70 +1,75 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class Square : MonoBehaviour
+namespace Mono
 {
-
-    private bool _selected;
-    private Color _original;
-    private GameObject _number;
-    private TextMesh _numberMesh;
-
-    private void Start()
+    public class Square : MonoBehaviour
     {
-        _number = new GameObject("Number")
-        {
-            transform =
-            {
-                parent = transform
-            }
-        };
-        _numberMesh = _number.AddComponent<TextMesh>();
-        if (_numberMesh == null) return;
-        _numberMesh.transform.position = transform.position;
-        _numberMesh.characterSize = 0.2f;
-        _numberMesh.fontSize = 8;
-        _numberMesh.color = Color.white;
-    }
+        public bool Selected;
+        private Color _original;
+        private bool _mouseOver;
+        [SerializeField] private TMP_Text _text;
+        public string squareName;
 
-    private void OnMouseOver()
-    {
-        if (Input.GetMouseButtonUp(1) && !_selected)
-            Interaction.Instance.DeleteSquare(name);
-        if (Input.GetMouseButtonUp(0))
+        private void Start()
         {
-            if (!_selected)
+        }
+
+        private void OnMouseOver()
+        {
+            if (EventSystem.current.IsPointerOverGameObject()) return;
+            _mouseOver = true;
+            if (Input.GetMouseButtonUp(1) && !Selected)
+                Interaction.Instance.DeleteSquare(name);
+            if (Input.GetMouseButtonUp(0))
             {
-                _original = GetComponent<SpriteRenderer>().color;
-                GetComponent<SpriteRenderer>().color = Color.red;
-                Interaction.Instance.SelectedSquareNames.Add(name);
-                _selected = true;
-                ShowNumber();
+                if (!Selected)
+                {
+                    Select();
+                    Interaction.Instance.hoveredSquare = this;
+                    Interaction.Instance.ShowOnScreenInput();
+                }
+                else
+                {
+                    Interaction.Instance.ShowOnScreenInput();
+                }
             }
-            else
+
+            if (Input.GetMouseButtonUp(1))
             {
-                
                 GetComponent<SpriteRenderer>().color = _original;
                 Interaction.Instance.SelectedSquareNames.Remove(name);
-                _selected = false;
-                HideNumber();
+                Selected = false;
             }
-            
         }
-    }
 
-    private void ShowNumber()
-    {
-        _numberMesh.text = $"{Interaction.Instance.SelectedSquareNames.IndexOf(name)}";
-    }
+        public void Select(string customName = "T")
+        {
+                _original = GetComponent<SpriteRenderer>().color;
+                GetComponent<SpriteRenderer>().color = new Color(100, 42, 0);
+                Interaction.Instance.SelectedSquareNames.Add(name);
+                Selected = true;
+                SetText(customName);
+        }
 
-    private void HideNumber()
-    {
-        _numberMesh.text = "";
-    }
+        public void SetText(string text)
+        {
+            _text.text = $"{text}";
+            squareName = text;
+        }
 
-    private void OnMouseExit()
-    {
+        public void HideText()
+        {
+            _text.text = "";
+        }
+
+        private void OnMouseExit()
+        {
+            _mouseOver = false;
+        }
     }
 }

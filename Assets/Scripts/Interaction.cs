@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using TMPro;
 using UnityEngine;
 
 public class Interaction : MonoBehaviour
@@ -24,6 +25,9 @@ public class Interaction : MonoBehaviour
     [SerializeField] private string guiLabelOutput = "";
     [SerializeField] public string configFilePath = "maze.json";
     private List<SerializableSquare> _serializedSquareList;
+    [SerializeField] private Canvas canvas;
+    [SerializeField] private TMP_InputField inputField;
+    public Mono.Square hoveredSquare;
 
     public enum AdjacentSide
     {
@@ -50,6 +54,8 @@ public class Interaction : MonoBehaviour
     {
         public Vector3 position;
         public float sideScale;
+        public string customName;
+        public bool selected;
     }
 
 
@@ -137,6 +143,8 @@ public class Interaction : MonoBehaviour
 
             return result;
         }
+
+        public Mono.Square GetMonoScript() => Self.GetComponent<Mono.Square>();
 
         public override string ToString()
         {
@@ -266,7 +274,7 @@ public class Interaction : MonoBehaviour
         Squares[square.Self.name] = square;
     }
 
-    private void LoadASquare(Vector3 position, float sideScale = 1)
+    private void LoadASquare(Vector3 position, float sideScale = 1, bool selected = false, string customName = "T")
     {
         
         var square = new Square(Instantiate(squarePrefab, position, Quaternion.identity), sideScale);
@@ -275,6 +283,8 @@ public class Interaction : MonoBehaviour
         _maxSquareCounter += 1; //Add max counter;
         square.Self.name = $"Square@{_maxSquareCounter}";
         Squares[square.Self.name] = square;
+        if (selected)
+            square.Self.GetComponent<Mono.Square>().Select(customName);
     }
     
 
@@ -319,7 +329,7 @@ public class Interaction : MonoBehaviour
 
     private void SaveSquareConfiguration()
     {
-        var serializedList = Squares.Select(pair => new SerializableSquare {position = pair.Value.Self.transform.position, sideScale = pair.Value.SideScale}).ToList();
+        var serializedList = Squares.Select(pair => new SerializableSquare {position = pair.Value.Self.transform.position, sideScale = pair.Value.SideScale, selected = pair.Value.GetMonoScript().Selected, customName=pair.Value.GetMonoScript().squareName}).ToList();
         var output = JsonConvert.SerializeObject(serializedList);
         if (string.IsNullOrEmpty(configFilePath)) return;
         try
@@ -341,7 +351,7 @@ public class Interaction : MonoBehaviour
             var serializedList = JsonConvert.DeserializeObject<List<SerializableSquare>>(input);
             foreach (var square in serializedList)
             {
-                LoadASquare(square.position, square.sideScale);
+                LoadASquare(square.position, square.sideScale, square.selected, square.customName);
             }
             
         }
@@ -351,6 +361,27 @@ public class Interaction : MonoBehaviour
         }
         
         
+    }
+
+    public void ShowOnScreenInput()
+    {
+        canvas.gameObject.SetActive(true);
+        // inputField.ActivateInputField();
+    }
+
+    public void HideOnScreenInput()
+    {
+        canvas.gameObject.SetActive(false);
+    }
+
+    public string GetOnScreenInput()
+    {
+        return inputField.text;
+    }
+
+    public void SetOnScreenInput(string text)
+    {
+        inputField.text = text;
     }
 
 
@@ -381,7 +412,9 @@ public class Interaction : MonoBehaviour
                 var output = string.Empty;
                 for (var i = 1; i<SelectedSquareNames.Count; ++i)
                 {
-                    output += $"{SelectedSquareNames[i-1]}==>{SelectedSquareNames[i]}: {ShortestDistance[SelectedSquareNames[i]]}\n";
+                    var squareName1 = Squares[SelectedSquareNames[i - 1]].Self.GetComponent<Mono.Square>().squareName;
+                    var squareName2 = Squares[SelectedSquareNames[i]].Self.GetComponent<Mono.Square>().squareName;
+                    output += $"{squareName1}==>{squareName2}: {ShortestDistance[SelectedSquareNames[i]]}\n";
                 }
 
                 guiLabelOutput = output;

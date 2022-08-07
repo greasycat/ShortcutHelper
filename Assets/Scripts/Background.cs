@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class Background : MonoBehaviour
 {
@@ -34,6 +35,7 @@ public class Background : MonoBehaviour
     
     private void OnMouseOver()
     {
+        if (EventSystem.current.IsPointerOverGameObject()) return;
         var mousePosition = Input.mousePosition;
         var worldMousePosition = camera.ScreenToWorldPoint(mousePosition);
         var mouse2dPosition = new Vector2(worldMousePosition.x, worldMousePosition.y);
@@ -56,6 +58,7 @@ public class Background : MonoBehaviour
 
     private void OnMouseEnter()
     {
+        if (EventSystem.current.IsPointerOverGameObject()) return;
         if (_shadowSquare && !_shadowSquare.activeSelf)
         {
                 _shadowSquare.SetActive(true);
