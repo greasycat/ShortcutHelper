@@ -41,12 +41,17 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <Compile Include="Assets\Scripts\Grid.cs" />
-     <Compile Include="Assets\Scripts\Background.cs" />
-     <Compile Include="Assets\Scripts\Square.cs" />
-     <Compile Include="Assets\Scripts\Interaction.cs" />
-     <Compile Include="Assets\Scripts\Shortcut.cs" />
-     <Compile Include="Assets\Scripts\InputControl.cs" />
+     <Compile Include="Assets\Scripts\Utils\Helper.cs" />
+     <Compile Include="Assets\Scripts\UI\Grid.cs" />
+     <Compile Include="Assets\Scripts\Core\Square.cs" />
+     <Compile Include="Assets\Scripts\UI\InputControl.cs" />
+     <Compile Include="Assets\Scripts\UI\Background.cs" />
+     <Compile Include="Assets\Scripts\UI\Tool.cs" />
+     <Compile Include="Assets\Scripts\UI\SquareControl.cs" />
+     <Compile Include="Assets\Scripts\Core\Interaction.cs" />
+     <Compile Include="Assets\Scripts\Utils\Exporter.cs" />
+     <Compile Include="Assets\Scripts\Utils\Shortcut.cs" />
+     <Compile Include="Assets\Scripts\UI\Toolbar.cs" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
@@ -314,6 +319,9 @@
      <Reference Include="UnityEditor.UnityConnectModule">
      <HintPath>C:\Program Files\Unity\Hub\Editor\2021.3.0f1\Editor\Data\Managed\UnityEngine\UnityEditor.UnityConnectModule.dll</HintPath>
      </Reference>
+     <Reference Include="Newtonsoft.Json">
+     <HintPath>D:\Unity Projects\ONR\Assets\JsonDotNet\Assemblies\Standalone\Newtonsoft.Json.dll</HintPath>
+     </Reference>
      <Reference Include="Unity.Burst.Unsafe">
      <HintPath>D:\Unity Projects\ONR\Library\PackageCache\com.unity.burst@1.6.5\Unity.Burst.Unsafe.dll</HintPath>
      </Reference>
@@ -334,9 +342,6 @@
      </Reference>
      <Reference Include="PriorityQueue">
      <HintPath>D:\Unity Projects\ONR\Assets\Packages\OptimizedPriorityQueue.5.1.0\lib\netstandard1.0\PriorityQueue.dll</HintPath>
-     </Reference>
-     <Reference Include="Newtonsoft.Json">
-     <HintPath>D:\Unity Projects\ONR\Assets\JsonDotNet\Assemblies\Standalone\Newtonsoft.Json.dll</HintPath>
      </Reference>
      <Reference Include="netstandard">
      <HintPath>C:\Program Files\Unity\Hub\Editor\2021.3.0f1\Editor\Data\NetStandard\ref\2.1.0\netstandard.dll</HintPath>
