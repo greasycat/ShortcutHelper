@@ -1,5 +1,6 @@
 using System;
 using Core;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Utils;
@@ -10,30 +11,36 @@ namespace UI
 {
     public class Background : MonoBehaviour
     {
+        //Background Image
+        private const float PixelPerUnit = 1f;
+
+        //Dragging
+        private const float CameraSpeed = 16f;
+
         // Start is called before the first frame update
         [SerializeField] private new Camera camera;
-        private SpriteRenderer _spriteRenderer;
-        private BoxCollider2D _collider2D;
+
+        //Shadow square
         [SerializeField] private GameObject shadowSquarePrefab;
-        private GameObject _shadowSquare;
-
-
-        private int _scrollingTriggered;
-        private float _scrollingTime = 0;
         [SerializeField] private float scrollingTimeThreshold = 0.2f;
-        private bool _isScrolling;
-        private float _zoomLevel = 1;
         public Vector2 originOffset = Vector2.zero;
-        private float _pixelPerUnit = 1f;
         public GameObject image;
-        private SpriteRenderer _imageSpriteRender;
-        private float _cameraSpeed = 16f;
-        private bool _middleMouseDown;
+        private BoxCollider2D _collider2D;
         private bool _imageLoaded;
-        private Texture2D _texture;
+        private SpriteRenderer _imageSpriteRender;
+        private bool _isScrolling;
         private Vector2 _mouseDownPosition;
+        private float _scrollingTime = 0;
+
+
+        //Scrolling
+        private int _scrollingTriggered;
+        private GameObject _centerShadowSquare;
+        private SpriteRenderer _spriteRenderer;
+        private Texture2D _texture;
         private Vector2 _x_axis_maximums;
         private Vector2 _y_axis_maximums;
+        private float _zoomLevel = 1;
 
 
         public static Background Instance { get; private set; }
@@ -64,7 +71,35 @@ namespace UI
             HandleScrollMovement();
             HandleArrowKey();
             HandleMiddleMouseDrag();
-            HandleMouseMove();
+            HandleMouseLeftClick();
+        }
+
+        //When drag
+        private void OnMouseDrag()
+        {
+            HandleMouseLeftClick();
+        }
+
+        //When mouse enter
+        private void OnMouseEnter()
+        {
+            if (EventSystem.current.IsPointerOverGameObject()) return;
+            if (_centerShadowSquare && !_centerShadowSquare.activeSelf)
+            {
+                _centerShadowSquare.SetActive(true);
+            }
+            else
+            {
+                _centerShadowSquare = Instantiate(shadowSquarePrefab, Vector3.zero, Quaternion.identity);
+            }
+        }
+
+        private void OnMouseExit()
+        {
+            if (_centerShadowSquare)
+            {
+                _centerShadowSquare.SetActive(false);
+            }
         }
 
         private void HandleMiddleMouseDrag()
@@ -72,7 +107,7 @@ namespace UI
             if (Input.GetMouseButton(2))
             {
                 var offset = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), 0);
-                offset *= Mathf.Log(_zoomLevel);
+                offset *= (Mathf.Log(_zoomLevel/1.5f));
                 camera.transform.position += offset;
             }
         }
@@ -97,7 +132,7 @@ namespace UI
                         _zoomLevel = temp;
                         // Interaction.Instance.currentSideScale = _zoomLevel;
                         StartCoroutine(Interaction.Instance.ShowMessageCoroutine($"Changed scaled to {_zoomLevel}"));
-                        camera.orthographicSize += _cameraSpeed * Mathf.Sign(-_scrollingTriggered);
+                        camera.orthographicSize += CameraSpeed * Mathf.Sign(-_scrollingTriggered);
                         Grid.Instance.AdjustLineWidthByZoom(_zoomLevel);
                         Grid.Instance.DrawGrid();
                         ResizeSpriteToScreen();
@@ -129,38 +164,38 @@ namespace UI
             camera.transform.position += new Vector3(offset.x, offset.y, 0);
         }
 
-
-        public void DisableShadowSquare()
+        private void HandleMouseLeftClick()
         {
-            _shadowSquare.SetActive(false);
-        }
-
-        private void OnMouseUp()
-        {
-            if (_middleMouseDown) _middleMouseDown = false;
-        }
-
-        
-        // private void OnMouseOver()
-        private void HandleMouseMove()
-        {
-            // if (EventSystem.current.IsPointerOverGameObject()) return;
+            if (EventSystem.current.IsPointerOverGameObject()) return;
             var mousePosition = Input.mousePosition;
             var worldMousePosition = camera.ScreenToWorldPoint(mousePosition);
             var mouse2dPosition = new Vector2(worldMousePosition.x, worldMousePosition.y);
 
             var scale = Interaction.Instance.currentSideScale;
-            var squarePosition = GetNearestSquareCenter(mouse2dPosition, scale);
+            var squarePosition = Helper.GetNearestSquareCenter(mouse2dPosition, scale);
 
-            if (!_shadowSquare) return;
-            _shadowSquare.transform.position = squarePosition;
-            _shadowSquare.transform.localScale = new Vector3(scale, scale, _shadowSquare.transform.localScale.z);
-            if (Input.GetMouseButtonDown(0))
+            var penSize = Toolbar.Instance.currentToolSize;
+
+            //When odd pen size
+            if (Helper.IsOdd(penSize))
             {
-                switch (Interaction.Instance.CurrentTool)
+                if (!_centerShadowSquare) return;
+                _centerShadowSquare.transform.position = squarePosition;
+                _centerShadowSquare.transform.localScale = new Vector3(scale, scale, _centerShadowSquare.transform.localScale.z);
+            }
+            
+            // When even size pen size
+            else
+            {
+                
+            }
+            
+            if (Input.GetMouseButton(0))
+            {
+                switch (Toolbar.Instance.currentTool)
                 {
                     case Tool.Pen:
-                        Interaction.Instance.NewSquare(_shadowSquare.transform.position);
+                        Interaction.Instance.NewSquare(_centerShadowSquare.transform.position);
                         break;
                     case Tool.Eraser:
                         break;
@@ -172,42 +207,19 @@ namespace UI
             }
         }
 
-
-        private void OnMouseEnter()
+        private void InstantiateSquares(Vector3 center, float scale)
         {
-            if (EventSystem.current.IsPointerOverGameObject()) return;
-            if (_shadowSquare && !_shadowSquare.activeSelf)
+            var positiveOffset = new Vector3(1, 1, 0);
+            var size = Toolbar.Instance.currentToolSize;
+            var startingPosition = center - scale * positiveOffset;
+            for (var i = 0; i != size; ++i)
             {
-                _shadowSquare.SetActive(true);
-            }
-            else
-            {
-                _shadowSquare = Instantiate(shadowSquarePrefab, Vector3.zero, Quaternion.identity);
-            }
-        }
-
-        private void OnMouseExit()
-        {
-            if (_shadowSquare)
-            {
-                _shadowSquare.SetActive(false);
+                for (var j = 0; j != size; ++j)
+                {
+                    
+                }
             }
         }
-
-        private static Vector2 GetNearestSquareCenter(Vector2 sourceVector, float unit)
-        {
-            var x = sourceVector.x;
-            var y = sourceVector.y;
-            var cx = Mathf.Sign(x) * Mathf.Ceil(Mathf.Abs(x) / unit) * unit;
-            var cy = Mathf.Sign(y) * Mathf.Ceil(Mathf.Abs(y) / unit) * unit;
-            var fx = Mathf.Sign(x) * Mathf.Floor(Mathf.Abs(x) / unit) * unit;
-            var fy = Mathf.Sign(y) * Mathf.Floor(Mathf.Abs(y) / unit) * unit;
-
-            // Debug.Log($"cx@{cx}, cy@{cy}, fx@{fx}, fy{fy} at unit@{unit}");
-
-            return new Vector2((cx + fx) / 2, (cy + fy) / 2);
-        }
-
 
         public void ResizeSpriteToScreen()
         {
@@ -242,9 +254,9 @@ namespace UI
             if (!_texture.LoadImage(bytes)) return;
 
             _imageSpriteRender.sprite = Sprite.Create(_texture, new Rect(0, 0, _texture.width, _texture.height),
-                new Vector2(0, 1), _pixelPerUnit);
-            image.transform.position = new Vector3(Mathf.Floor(-_texture.width / (_pixelPerUnit * 2f)),
-                Mathf.Floor(_texture.height / (_pixelPerUnit * 2f)), 2);
+                new Vector2(0, 1), PixelPerUnit);
+            image.transform.position = new Vector3(Mathf.Floor(-_texture.width / (PixelPerUnit * 2f)),
+                Mathf.Floor(_texture.height / (PixelPerUnit * 2f)), 2);
             _imageLoaded = true;
             ResizeSpriteToImage();
         }
@@ -261,9 +273,5 @@ namespace UI
             transform.localScale = new Vector3(_texture.width, _texture.height, -1);
         }
 
-
-        public void ResizeSprite(Vector2 size)
-        {
-        }
     }
 }

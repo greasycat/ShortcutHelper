@@ -17,7 +17,20 @@ namespace UI
         [SerializeField] private Button selectButton;
 
         private List<Button> _selectableButtons;
+        public Tool currentTool;
+        public int currentToolSize = 1;
 
+        public static Toolbar Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance != null)
+            {
+                Destroy(Instance);
+            }
+
+            Instance = this;
+        }
         private void Start()
         {
             _selectableButtons = new List<Button>()
@@ -37,7 +50,7 @@ namespace UI
 
         public void SelectButton(string buttonName)
         {
-            Interaction.Instance.CurrentTool = buttonName switch
+            currentTool = buttonName switch
             {
                 "pen" => Tool.Pen,
                 "eraser" => Tool.Eraser,
@@ -46,7 +59,7 @@ namespace UI
             };
             for (var i = 0; i < _selectableButtons.Count; ++i)
             {
-                if ((int) Interaction.Instance.CurrentTool == i)
+                if ((int) currentTool == i)
                 {
                     
                     var colors = _selectableButtons[i].colors;
@@ -61,6 +74,18 @@ namespace UI
                     _selectableButtons[i].colors = colors;
                 }
             }
+        }
+
+        public void ToolSizeChange()
+        {
+            Interaction.Instance.SetOnScreenInputAction((text, success) =>
+            {
+                if (!success) return;
+                if (!int.TryParse(text, out var tempSize)) return;
+                if (tempSize < 1) return;
+                currentToolSize = tempSize;
+                Interaction.Instance.ShowInfoForSeconds($"Change tool size to {currentToolSize}");
+            }, $"{(int)(currentToolSize)}");
         }
 
         private void OnGUI()

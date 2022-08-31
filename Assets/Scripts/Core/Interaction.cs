@@ -33,8 +33,6 @@ namespace Core
         public TMP_Text message;
 
         //Toolbar
-        [NonSerialized] public Tool CurrentTool = Tool.Pen;
-
 
         //Input
         [SerializeField] private Canvas inputCanvas;
@@ -128,7 +126,7 @@ namespace Core
             var serializedList = Squares.Select(pair => new SerializableSquare
             {
                 position = pair.Value.GameObject.transform.position, sideScale = pair.Value.SideScale,
-                selected = pair.Value.GetControl().Selected, customName = pair.Value.GetControl().SquareName
+                selected = pair.Value.GetControl().selected, customName = pair.Value.GetControl().SquareName
             }).ToList();
             var output = JsonConvert.SerializeObject(serializedList);
             if (string.IsNullOrEmpty(filePath)) return;
@@ -149,6 +147,7 @@ namespace Core
             {
                 square.GetControl().DeleteSquare();
             }
+
             try
             {
                 var input = File.ReadAllText(filePath);
@@ -199,7 +198,10 @@ namespace Core
                 var output = "Source, Destination, Distance\r\n";
                 foreach (var (source, value) in ShortestDistance)
                 {
-                    output = value.Select(p2 => p2.Key).Aggregate(output, (current, destination) => current + $"{Squares[source].GetControl().SquareName},{Squares[destination].GetControl().SquareName}, {ShortestDistance[source][destination]}\r\n");
+                    output = value.Select(p2 => p2.Key).Aggregate(output,
+                        (current, destination) =>
+                            current +
+                            $"{Squares[source].GetControl().SquareName},{Squares[destination].GetControl().SquareName}, {ShortestDistance[source][destination]}\r\n");
                 }
 
                 File.WriteAllText("shortcuts.csv", output);
@@ -213,6 +215,17 @@ namespace Core
         }
 
 
+        public void ShowMessageForSeconds(string text, float duration = 2f)
+        {
+            StartCoroutine(ShowMessageCoroutine(text, duration));
+        }
+        
+        
+        public void ShowInfoForSeconds(string text, float duration = 2f)
+        {
+            StartCoroutine(ShowInfoCoroutine(text, duration));
+        }
+        
         public IEnumerator ShowMessageCoroutine(string text, float duration = 2f)
         {
             message.SetText(text);
@@ -228,6 +241,5 @@ namespace Core
             yield return new WaitForSeconds(duration);
             message.SetText("");
         }
-
     }
 }

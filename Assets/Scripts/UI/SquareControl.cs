@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Core;
 using TMPro;
 using UnityEngine;
@@ -8,9 +10,10 @@ namespace UI
 {
     public class SquareControl : MonoBehaviour
     {
-        public bool Selected;
+        public bool selected;
         private Color _original;
         private bool _mouseOver;
+        private List<float> _clickList = new();
         [SerializeField] private TMP_Text _text;
         public string SquareName { private set; get; }
 
@@ -23,38 +26,22 @@ namespace UI
             if (EventSystem.current.IsPointerOverGameObject()) return;
             _mouseOver = true;
 
-            switch (Interaction.Instance.CurrentTool)
+            switch (Toolbar.Instance.currentTool)
             {
                 case Tool.Pen:
-                    if (Input.GetMouseButtonUp(0) && !Selected)
-                    {
-                        Select();
-                        Interaction.Instance.SquareToEdit = this;
-                        Interaction.Instance.SetOnScreenInputAction((string s, bool success) =>
-                            {
-                                if (success) SetText(s);
-                            }
-                            , GetText());
-                    }
-                    else if (Input.GetMouseButtonUp(0) && Selected)
-                    {
-                        Interaction.Instance.SetOnScreenInputAction((string s, bool success) =>
-                            {
-                                if (success) SetText(s);
-                            }
-                            , GetText());
-                    }
-                    if (Input.GetMouseButtonUp(1) && Selected)
+                    RunIfDoubleClick(HandleDoubleClick);
+
+                    if (Input.GetMouseButtonUp(1) && selected)
                     {
                         GetComponent<SpriteRenderer>().color = _original;
                         Interaction.Instance.SelectedSquareNames.Remove(name);
-                        Selected = false;
+                        selected = false;
                         SetText("T");
                     }
 
                     break;
                 case Tool.Eraser:
-                    if (Input.GetMouseButton(0) )
+                    if (Input.GetMouseButton(0))
                         DeleteSquare();
                     break;
                 case Tool.Select:
@@ -74,16 +61,16 @@ namespace UI
 
         public void DeleteSquare()
         {
-            if (Selected)
+            if (selected)
             {
                 Interaction.Instance.SelectedSquareNames.Remove(name);
-                Selected = false;
+                selected = false;
                 Interaction.Instance.DeleteSquare(name);
             }
             else
             {
                 Interaction.Instance.DeleteSquare(name);
-            } 
+            }
         }
 
         public void Select(string customName = "")
@@ -91,7 +78,7 @@ namespace UI
             _original = GetComponent<SpriteRenderer>().color;
             GetComponent<SpriteRenderer>().color = Color.red;
             Interaction.Instance.SelectedSquareNames.Add(name);
-            Selected = true;
+            selected = true;
             SetText(customName);
         }
 
@@ -111,6 +98,46 @@ namespace UI
         private void OnMouseExit()
         {
             _mouseOver = false;
+        }
+
+        private void HandleDoubleClick()
+        {
+            if (!selected)
+            {
+                Select();
+                Interaction.Instance.SquareToEdit = this;
+                Interaction.Instance.SetOnScreenInputAction((string s, bool success) =>
+                    {
+                        if (success) SetText(s);
+                    }
+                    , GetText());
+            }
+            else 
+            {
+                Interaction.Instance.SetOnScreenInputAction((string s, bool success) =>
+                    {
+                        if (success) SetText(s);
+                    }
+                    , GetText());
+            }
+        }
+
+        private void RunIfDoubleClick(Action action)
+        {
+            if (Input.GetMouseButtonUp(0))
+            {
+                var currentTime = Time.time;
+                if (_clickList.Count > 1)
+                {
+                    if (currentTime - _clickList.Last() < 0.25f)
+                    {
+                        action();
+                        _clickList.RemoveRange(0, 2);
+                    }
+                }
+
+                _clickList.Add(currentTime);
+            }
         }
     }
 }
