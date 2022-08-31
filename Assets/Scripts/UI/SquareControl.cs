@@ -44,7 +44,7 @@ namespace UI
                             }
                             , GetText());
                     }
-                    else if (Input.GetMouseButtonUp(1) && Selected)
+                    if (Input.GetMouseButtonUp(1) && Selected)
                     {
                         GetComponent<SpriteRenderer>().color = _original;
                         Interaction.Instance.SelectedSquareNames.Remove(name);

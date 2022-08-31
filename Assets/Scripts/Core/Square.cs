@@ -62,6 +62,21 @@ namespace Core
             };
         }
 
+        public bool CheckIfOverlapping(Vector3 position, float scale)
+        {
+            var targetRect = new Rect(position.x, position.y, scale, scale);
+
+            var pos = GetPosition();
+            var selfRect = new Rect(pos.x, pos.y, SideScale, SideScale);
+            return selfRect.Overlaps(targetRect);
+        }
+
+        private Vector2 GetPosition()
+        {
+            var pos = GameObject.transform.position;
+            return new Vector2(pos.x, pos.y);
+        }
+
         public AdjacentSide CheckIfAdjacent(Square target)
         {
             var targetRect = target.GetRect();

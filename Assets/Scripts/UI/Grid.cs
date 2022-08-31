@@ -13,11 +13,8 @@ namespace UI
         [SerializeField] private new Camera camera;
         private List<GameObject> _horizontalLines;
         private List<GameObject> _verticalLines;
-
-        private int _scrollingTriggered;
-        private float _scrollingTime = 0;
-        private bool _isScrolling;
-        private float _zoomLevel=1;
+        private float _lineWidth = 0.02f;
+        private bool _enableGrid = false;
 
         private void Start()
         {
@@ -25,31 +22,35 @@ namespace UI
             _verticalLines = new List<GameObject>();
             DrawGrid();
         }
+        
+        public static Grid Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance != null)
+            {
+                Destroy(Instance);
+            }
+
+            Instance = this;
+        }
 
         // Update is called once per frame
         private void Update()
         {
-            var mouseScroll = Input.mouseScrollDelta.y;
-            // Debug.Log(0.1f * mouseScroll);
-            _scrollingTriggered += (int)mouseScroll;
-            if (Helper.IsFloatEqual(mouseScroll, 0) && _scrollingTriggered == 0)
-            {
-                _scrollingTime = Time.time;
-            }
-            
-            if (Time.time - _scrollingTime >= 0.2f)
-            {
-                Debug.Log(_scrollingTriggered);
-                if (_scrollingTriggered != 0)
-                {
-                    _zoomLevel *= Mathf.Pow(2,Mathf.Sign(_scrollingTriggered));
-                    Interaction.Instance.currentSideScale = _zoomLevel;
-                    StartCoroutine(Interaction.Instance.ShowMessageCoroutine($"Changed scaled to {_zoomLevel}"));
-                    DrawGrid();
-                }
-                _scrollingTriggered = 0;
-            }
+
         }
+
+        public void SetLineWidth(float width)
+        {
+            _lineWidth = width;
+        }
+
+        public void AdjustLineWidthByZoom(float zoomLevel)
+        {
+            _lineWidth = 0.02f + 0.004f*Mathf.Log(zoomLevel);
+        }
+
 
         public void DrawGrid()
         {
@@ -64,25 +65,40 @@ namespace UI
                 _horizontalLines.ForEach((Destroy));
                 _horizontalLines = new List<GameObject>();
             }
+            
+            if (!_enableGrid) return;
 
             var worldScreenHeight = (float) camera.orthographicSize * 2.0f;
             var worldScreenWidth = (float) worldScreenHeight / Screen.height * Screen.width;
             var horizontalLineNumber = (int) (worldScreenHeight / Interaction.Instance.currentSideScale);
             var verticalLineNumber = (int) (worldScreenWidth / Interaction.Instance.currentSideScale);
+            print(worldScreenHeight);
 
             var scale = Interaction.Instance.currentSideScale;
+            var offset = Background.Instance.originOffset;
+            var x = offset.x;
+            var y = offset.y;
 
             for (var i = 0; i < horizontalLineNumber / 2; ++i)
             {
                 var line = Instantiate(linePrefab, Vector3.zero, Quaternion.identity);
                 var lineRenderer = line.GetComponent<LineRenderer>();
                 lineRenderer.positionCount = 3;
+                lineRenderer.startWidth = _lineWidth;
+                lineRenderer.endWidth = _lineWidth;
                 var positions = new Vector3[]
                 {
                     new(-worldScreenWidth, i * scale, -1),
                     new(0, i * scale, -1),
                     new(worldScreenWidth, i * scale, -1)
                 };
+                
+                for (var j = 0; j != positions.Length; ++j)
+                {
+                    positions[j].x += x;
+                    positions[j].y += y;
+                }
+                
                 lineRenderer.SetPositions(positions);
                 _horizontalLines.Add(line);
             }
@@ -92,12 +108,21 @@ namespace UI
                 var line = Instantiate(linePrefab, Vector3.zero, Quaternion.identity);
                 var lineRenderer = line.GetComponent<LineRenderer>();
                 lineRenderer.positionCount = 3;
+                lineRenderer.startWidth = _lineWidth;
+                lineRenderer.endWidth = _lineWidth;
                 var positions = new Vector3[]
                 {
                     new(-worldScreenWidth, -i * scale, -1),
                     new(0, -i * scale, -1),
                     new(worldScreenWidth, -i * scale, -1)
                 };
+
+                for (var j = 0; j != positions.Length; ++j)
+                {
+                    positions[j].x += x;
+                    positions[j].y += y;
+                }
+
                 lineRenderer.SetPositions(positions);
                 _horizontalLines.Add(line);
             }
@@ -108,12 +133,19 @@ namespace UI
                 var line = Instantiate(linePrefab, Vector3.zero, Quaternion.identity);
                 var lineRenderer = line.GetComponent<LineRenderer>();
                 lineRenderer.positionCount = 3;
+                lineRenderer.startWidth = _lineWidth;
+                lineRenderer.endWidth = _lineWidth;
                 var positions = new Vector3[]
                 {
                     new(i * scale, worldScreenHeight, -1),
                     new(i * scale, 0, -1),
                     new(i * scale, -worldScreenHeight, -1)
                 };
+                for (var j = 0; j != positions.Length; ++j)
+                {
+                    positions[j].x += x;
+                    positions[j].y += y;
+                }
                 lineRenderer.SetPositions(positions);
                 _verticalLines.Add(line);
             }
@@ -123,12 +155,19 @@ namespace UI
                 var line = Instantiate(linePrefab, Vector3.zero, Quaternion.identity);
                 var lineRenderer = line.GetComponent<LineRenderer>();
                 lineRenderer.positionCount = 3;
+                lineRenderer.startWidth = _lineWidth;
+                lineRenderer.endWidth = _lineWidth;
                 var positions = new Vector3[]
                 {
                     new(-i * scale, worldScreenHeight, -1),
                     new(-i * scale, 0, -1),
                     new(-i * scale, -worldScreenHeight, -1)
                 };
+                for (var j = 0; j != positions.Length; ++j)
+                {
+                    positions[j].x += x;
+                    positions[j].y += y;
+                }
                 lineRenderer.SetPositions(positions);
                 _verticalLines.Add(line);
             }

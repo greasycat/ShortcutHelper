@@ -83,12 +83,18 @@ namespace Core
 
         public void NewSquare(Vector3 position)
         {
+            if (CheckPositionOverlapping(position)) return;
             var target = new Square(Instantiate(squarePrefab, position, Quaternion.identity), currentSideScale);
             Square.SetAdjacentSquare(Squares, target); //Update adjacency info
 
             _maxSquareCounter += 1; //Add max counter;
             target.GameObject.name = $"Square@{_maxSquareCounter}";
             Squares[target.GameObject.name] = target;
+        }
+
+        private bool CheckPositionOverlapping(Vector3 position)
+        {
+            return Squares.Values.Any(square => square.CheckIfOverlapping(position, currentSideScale));
         }
 
         private void LoadASquare(Vector3 position, float sideScale = 1, bool selected = false, string customName = "T")
@@ -191,15 +197,6 @@ namespace Core
             {
                 Shortcut.CalculateAll();
                 var output = "Source, Destination, Distance\r\n";
-                // for (var i = 0; i != SelectedSquareNames.Count - 1; ++i)
-                // // {
-                // //     for (var j = i + 1; j != SelectedSquareNames.Count; ++j)
-                // //     {
-                // //         var source = SelectedSquareNames[i];
-                // //         var destination = SelectedSquareNames[j];
-                // //         output += $"{Squares[source].GetControl().SquareName},{Squares[destination].GetControl().SquareName}, {ShortestDistance[source][destination]}\r\n";
-                // //     }
-                // // }
                 foreach (var (source, value) in ShortestDistance)
                 {
                     output = value.Select(p2 => p2.Key).Aggregate(output, (current, destination) => current + $"{Squares[source].GetControl().SquareName},{Squares[destination].GetControl().SquareName}, {ShortestDistance[source][destination]}\r\n");
@@ -232,31 +229,5 @@ namespace Core
             message.SetText("");
         }
 
-        private void OnGUI()
-        {
-            // GUI.BeginGroup(new Rect(500, 25, 400, 180));
-            // GUI.Box(new Rect(10, 0, 400, 160), "");
-            //
-            // if (GUI.Button(new Rect(200, 20, 150, 20), "Calculate Shortest Path"))
-            // {
-            //     Shortcut.CalculateAll();
-            //     if (SelectedSquareNames is {Count: > 1} && ShortestDistance is {Count: > 1})
-            //     {
-            //         var output = string.Empty;
-            //         for (var i = 1; i < SelectedSquareNames.Count; ++i)
-            //         {
-            //             var squareName1 = Squares[SelectedSquareNames[i - 1]].GameObject
-            //                 .GetComponent<UI.SquareControl>().squareName;
-            //             var squareName2 = Squares[SelectedSquareNames[i]].GameObject.GetComponent<UI.SquareControl>()
-            //                 .squareName;
-            //             output += $"{squareName1}==>{squareName2}: {ShortestDistance[SelectedSquareNames[i]]}\n";
-            //         }
-            //
-            //         guiLabelOutput = output;
-            //     }
-            // }
-            //
-            // GUI.EndGroup();
-        }
     }
 }
