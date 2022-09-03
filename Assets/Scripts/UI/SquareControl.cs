@@ -14,6 +14,7 @@ namespace UI
         private Color _original;
         private bool _mouseOver;
         private List<float> _clickList = new();
+        
         [SerializeField] private TMP_Text _text;
         public string SquareName { private set; get; }
 

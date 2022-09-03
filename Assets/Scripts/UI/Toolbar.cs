@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,9 +17,20 @@ namespace UI
         [SerializeField] private Button eraserButton;
         [SerializeField] private Button selectButton;
 
+        [SerializeField] private GameObject sizeProperty;
+        [SerializeField] private TMP_InputField sizeInputField;
+        [SerializeField] private Slider slider;
+
+        [SerializeField] private GameObject dimensionProperty;
+        [SerializeField] private TMP_InputField widthInputField;
+        [SerializeField] private TMP_InputField heightInputField;
+        
+
         private List<Button> _selectableButtons;
         public Tool currentTool;
         public int currentToolSize = 1;
+
+        private string _lastRightClicked = "pen";
 
         public static Toolbar Instance { get; private set; }
 
@@ -46,6 +58,72 @@ namespace UI
         private void Update()
         {
             //Hide Control H
+        }
+
+        //Handle Pen Size
+        public void RightClickToChangeSize(string buttonName)
+        {
+            if (_lastRightClicked == buttonName)
+            {
+                sizeProperty.SetActive(!sizeProperty.activeSelf);
+            }
+            else
+            {
+                sizeProperty.SetActive(true);
+            }
+            _lastRightClicked = buttonName;
+            var pos = sizeProperty.transform.position;
+            pos.y = buttonName switch
+            {
+                "pen" => penButton.transform.position.y,
+                "eraser" => eraserButton.transform.position.y,
+                _ => pos.y 
+            };
+            sizeProperty.transform.position = pos;
+        }
+
+        public void OnSizeInputFieldChange()
+        {
+            var changedText = sizeInputField.text;
+            if (int.TryParse(changedText, out var size))
+            {
+                currentToolSize = size;
+                slider.value = size;
+                Interaction.Instance.ShowInfoForSeconds($"Change size to {currentToolSize}");
+            }
+            else
+            {
+                sizeInputField.text = currentToolSize.ToString();
+                slider.value = size;
+            }
+        }
+
+        public void OnSliderChange()
+        {
+            var changedValue = slider.value;
+            if (slider.value >= 200) return;
+            currentToolSize = (int)changedValue;
+            sizeInputField.text = $"{currentToolSize}";
+            Interaction.Instance.ShowInfoForSeconds($"Change size to {currentToolSize}");
+        }
+
+        //Handle Map Dimension UI
+        public void RightClickToChangeDimension()
+        {
+            dimensionProperty.SetActive(!sizeProperty.activeSelf);
+        }
+
+        public void ClickToConfirmChangeDimension()
+        {
+            if (!int.TryParse(widthInputField.text, out var width) ||
+                !int.TryParse(heightInputField.text, out var height)
+                || width<=0 || height <=0)
+            {
+                Interaction.Instance.ShowMessageForSeconds("Please input the correct dimension");
+                return;
+            }
+            
+            Interaction.Instance.NewMap(width, height);
         }
 
         public void SelectButton(string buttonName)

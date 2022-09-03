@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Core;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -22,6 +24,10 @@ namespace UI
 
         //Shadow square
         [SerializeField] private GameObject shadowSquarePrefab;
+        private Vector2 _lastShadowSquareCenter;
+        private List<GameObject> _shadowSquares = new();
+
+
         [SerializeField] private float scrollingTimeThreshold = 0.2f;
         public Vector2 originOffset = Vector2.zero;
         public GameObject image;
@@ -35,12 +41,13 @@ namespace UI
 
         //Scrolling
         private int _scrollingTriggered;
-        private GameObject _centerShadowSquare;
         private SpriteRenderer _spriteRenderer;
         private Texture2D _texture;
         private Vector2 _x_axis_maximums;
         private Vector2 _y_axis_maximums;
         private float _zoomLevel = 1;
+        private HashSet<Vector2> _createdSquaresPositions = new();
+        private HashSet<Vector2> _pendingSquarePositions = new();
 
 
         public static Background Instance { get; private set; }
@@ -71,35 +78,37 @@ namespace UI
             HandleScrollMovement();
             HandleArrowKey();
             HandleMiddleMouseDrag();
-            HandleMouseLeftClick();
+            ShowShadowSquare();
+            // HandleMouseLeftClick();
+            HandleLeftMouse();
         }
 
         //When drag
         private void OnMouseDrag()
         {
-            HandleMouseLeftClick();
+            // HandleMouseLeftClick();
         }
 
         //When mouse enter
         private void OnMouseEnter()
         {
-            if (EventSystem.current.IsPointerOverGameObject()) return;
-            if (_centerShadowSquare && !_centerShadowSquare.activeSelf)
-            {
-                _centerShadowSquare.SetActive(true);
-            }
-            else
-            {
-                _centerShadowSquare = Instantiate(shadowSquarePrefab, Vector3.zero, Quaternion.identity);
-            }
+            // if (EventSystem.current.IsPointerOverGameObject()) return;
+            // if (_centerShadowSquare && !_centerShadowSquare.activeSelf)
+            // {
+            //     _centerShadowSquare.SetActive(true);
+            // }
+            // else
+            // {
+            //     _centerShadowSquare = Instantiate(shadowSquarePrefab, Vector3.zero, Quaternion.identity);
+            // }
         }
 
         private void OnMouseExit()
         {
-            if (_centerShadowSquare)
-            {
-                _centerShadowSquare.SetActive(false);
-            }
+            // if (_centerShadowSquare)
+            // {
+            //     _centerShadowSquare.SetActive(false);
+            // }
         }
 
         private void HandleMiddleMouseDrag()
@@ -107,7 +116,7 @@ namespace UI
             if (Input.GetMouseButton(2))
             {
                 var offset = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), 0);
-                offset *= (Mathf.Log(_zoomLevel/1.5f));
+                offset *= (Mathf.Log(_zoomLevel / 1.5f));
                 camera.transform.position += offset;
             }
         }
@@ -164,47 +173,129 @@ namespace UI
             camera.transform.position += new Vector3(offset.x, offset.y, 0);
         }
 
-        private void HandleMouseLeftClick()
+        private void HandleLeftMouse()
         {
             if (EventSystem.current.IsPointerOverGameObject()) return;
+            if (Input.GetMouseButton(0))
+            {
+                foreach (var squarePosition in _pendingSquarePositions)
+                {
+                    NewSquare(squarePosition);
+                    _createdSquaresPositions.Add(squarePosition);
+                }
+            }
+        }
+
+        // private void HandleMouseLeftClick()
+        // {
+        //     if (EventSystem.current.IsPointerOverGameObject()) return;
+        //     var mousePosition = Input.mousePosition;
+        //     var worldMousePosition = camera.ScreenToWorldPoint(mousePosition);
+        //     var mouse2dPosition = new Vector2(worldMousePosition.x, worldMousePosition.y);
+        //     var scale = Interaction.Instance.currentSideScale;
+        //     var squarePosition = Helper.GetNearestSquareCenter(mouse2dPosition, scale);
+        //
+        //     var penSize = Toolbar.Instance.currentToolSize;
+        //
+        //     //When odd pen size
+        //     if (Helper.IsOdd(penSize))
+        //     {
+        //         if (!_centerShadowSquare) return;
+        //         _centerShadowSquare.transform.position = squarePosition;
+        //         _centerShadowSquare.transform.localScale =
+        //             new Vector3(scale, scale, _centerShadowSquare.transform.localScale.z);
+        //     }
+        //
+        //     // When even size pen size
+        //     else
+        //     {
+        //
+        //     }
+        //
+        //     if (Input.GetMouseButton(0))
+        //     {
+        //         switch (Toolbar.Instance.currentTool)
+        //         {
+        //             case Tool.Pen:
+        //                 Interaction.Instance.NewSquare(_centerShadowSquare.transform.position);
+        //                 break;
+        //             case Tool.Eraser:
+        //                 break;
+        //             case Tool.Select:
+        //                 break;
+        //             default:
+        //                 throw new ArgumentOutOfRangeException();
+        //         }
+        //     }
+        // }
+
+        private void NewShadowSquare(Vector2 pos)
+        {
+            if (!_createdSquaresPositions.Contains(pos))
+            {
+                var shadowSquare = Instantiate(shadowSquarePrefab, new Vector3(pos.x, pos.y, 0), quaternion.identity);
+                var scale = shadowSquare.transform.localScale;
+                scale.x = Interaction.Instance.currentSideScale;
+                scale.y = Interaction.Instance.currentSideScale;
+                shadowSquare.transform.localScale = scale;
+                _shadowSquares.Add(shadowSquare);
+            }
+        }
+
+        private void NewSquare(Vector2 pos)
+        {
+            if (!_createdSquaresPositions.Contains(pos))
+                Interaction.Instance.NewSquare(pos);
+        }
+
+        private void ShowShadowSquare()
+        {
+            if (EventSystem.current.IsPointerOverGameObject()) return;
+
             var mousePosition = Input.mousePosition;
             var worldMousePosition = camera.ScreenToWorldPoint(mousePosition);
             var mouse2dPosition = new Vector2(worldMousePosition.x, worldMousePosition.y);
-
-            var scale = Interaction.Instance.currentSideScale;
+            var scale = (int) Interaction.Instance.currentSideScale;
             var squarePosition = Helper.GetNearestSquareCenter(mouse2dPosition, scale);
+            if (_lastShadowSquareCenter.Equals(squarePosition)) return;
+            _lastShadowSquareCenter = squarePosition;
+
+            RemoveAllShadowSquares();
+            
 
             var penSize = Toolbar.Instance.currentToolSize;
-
-            //When odd pen size
-            if (Helper.IsOdd(penSize))
+            var r = penSize - 1;
+            for (var x = 0; x <= r * 2; x += scale)
             {
-                if (!_centerShadowSquare) return;
-                _centerShadowSquare.transform.position = squarePosition;
-                _centerShadowSquare.transform.localScale = new Vector3(scale, scale, _centerShadowSquare.transform.localScale.z);
-            }
-            
-            // When even size pen size
-            else
-            {
-                
-            }
-            
-            if (Input.GetMouseButton(0))
-            {
-                switch (Toolbar.Instance.currentTool)
+                for (var y = 0; y <= r * 2; y += scale)
                 {
-                    case Tool.Pen:
-                        Interaction.Instance.NewSquare(_centerShadowSquare.transform.position);
-                        break;
-                    case Tool.Eraser:
-                        break;
-                    case Tool.Select:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    var nx = x - r;
+                    var ny = y - r;
+                    var distanceSquared = nx * nx + ny * ny;
+                    var offset = new Vector2(nx, ny);
+
+                    if (distanceSquared <= r * r)
+                    {
+                        _pendingSquarePositions.Add(squarePosition + offset);
+                    }
+
+                    if (r * r - r > distanceSquared || distanceSquared > r * r) continue;
+
+
+                    NewShadowSquare(squarePosition + offset);
                 }
             }
+        }
+
+        private void RemoveAllShadowSquares()
+        {
+            foreach (var o in _shadowSquares)
+            {
+                Destroy(o);
+            }
+
+            _shadowSquares.Clear();
+            _pendingSquarePositions.Clear();
         }
 
         private void InstantiateSquares(Vector3 center, float scale)
@@ -216,7 +307,6 @@ namespace UI
             {
                 for (var j = 0; j != size; ++j)
                 {
-                    
                 }
             }
         }
@@ -272,6 +362,5 @@ namespace UI
 
             transform.localScale = new Vector3(_texture.width, _texture.height, -1);
         }
-
     }
 }

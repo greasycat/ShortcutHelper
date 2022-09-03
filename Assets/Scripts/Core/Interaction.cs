@@ -6,6 +6,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using TMPro;
 using UI;
+using Unity.VisualScripting;
 using UnityEngine;
 using Utils;
 using Grid = UI.Grid;
@@ -18,10 +19,12 @@ namespace Core
         [SerializeField] private new Camera camera;
 
         public Dictionary<string, Square> Squares;
+        public List<List<Square>> SquareMatrix = new List<List<Square>>();
+        public bool[,] ConnectivityMatrix;
 
         private int _maxSquareCounter;
 
-        [SerializeField] public float currentSideScale = 1;
+        [DoNotSerialize] public float currentSideScale = 10;
         private string _textScale;
 
         //UI
@@ -79,20 +82,35 @@ namespace Core
         {
         }
 
+        // Square Matrix Operation
+        private void InitializeMatrices(int width, int height)
+        {
+            ConnectivityMatrix = new bool[height * width, height * width];
+            for (var i = 0; i != height; ++i)
+            {
+                var row = new List<Square>();
+                for (var j = 0; j != width; ++j)
+                {
+                    row.Add(null);
+                }
+                SquareMatrix.Add(row);
+            }
+        }
+
+        public void NewMap(int width, int height)
+        {
+            InitializeMatrices(width, height);
+        }
+
+        // Square operations
         public void NewSquare(Vector3 position)
         {
-            if (CheckPositionOverlapping(position)) return;
             var target = new Square(Instantiate(squarePrefab, position, Quaternion.identity), currentSideScale);
             Square.SetAdjacentSquare(Squares, target); //Update adjacency info
 
             _maxSquareCounter += 1; //Add max counter;
             target.GameObject.name = $"Square@{_maxSquareCounter}";
             Squares[target.GameObject.name] = target;
-        }
-
-        private bool CheckPositionOverlapping(Vector3 position)
-        {
-            return Squares.Values.Any(square => square.CheckIfOverlapping(position, currentSideScale));
         }
 
         private void LoadASquare(Vector3 position, float sideScale = 1, bool selected = false, string customName = "T")
@@ -113,13 +131,6 @@ namespace Core
             Squares[squareName].Dispose();
             Squares.Remove(squareName);
         }
-
-        public void ClickOneThird()
-        {
-            currentSideScale = 1f / 3f;
-            grid.DrawGrid();
-        }
-
 
         private void SaveSquareConfiguration(string filePath)
         {
@@ -219,13 +230,13 @@ namespace Core
         {
             StartCoroutine(ShowMessageCoroutine(text, duration));
         }
-        
-        
+
+
         public void ShowInfoForSeconds(string text, float duration = 2f)
         {
             StartCoroutine(ShowInfoCoroutine(text, duration));
         }
-        
+
         public IEnumerator ShowMessageCoroutine(string text, float duration = 2f)
         {
             message.SetText(text);

@@ -16,8 +16,6 @@ namespace Utils
             var fx = Mathf.Sign(x) * Mathf.Floor(Mathf.Abs(x) / unit) * unit;
             var fy = Mathf.Sign(y) * Mathf.Floor(Mathf.Abs(y) / unit) * unit;
 
-            // Debug.Log($"cx@{cx}, cy@{cy}, fx@{fx}, fy{fy} at unit@{unit}");
-
             return new Vector2((cx + fx) / 2, (cy + fy) / 2);
         }
 
@@ -29,6 +27,18 @@ namespace Utils
         public static bool IsEven(int num)
         {
             return num % 2 == 0;
+        }
+
+        public static int TwoDimensionToOne(int x, int y, int width)
+        {
+            return x + width * y;
+        }
+
+        public static Vector2 OneDimensionToTwo(int i, int width)
+        {
+            var x = i % width;
+            var y = (i - x) / width;
+            return new Vector2(x, y);
         }
 
     }

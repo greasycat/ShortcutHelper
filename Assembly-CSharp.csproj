@@ -47,12 +47,12 @@
      <Compile Include="Assets\Scripts\UI\InputControl.cs" />
      <Compile Include="Assets\Scripts\UI\Background.cs" />
      <Compile Include="Assets\Scripts\UI\Tool.cs" />
+     <Compile Include="Assets\Scripts\UI\ButtonControl.cs" />
      <Compile Include="Assets\Scripts\UI\SquareControl.cs" />
      <Compile Include="Assets\Scripts\Core\Interaction.cs" />
      <Compile Include="Assets\Scripts\Utils\Exporter.cs" />
      <Compile Include="Assets\Scripts\Utils\Shortcut.cs" />
      <Compile Include="Assets\Scripts\UI\Toolbar.cs" />
-     <Compile Include="Assets\Scripts\UI\ButtonControl.cs" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
